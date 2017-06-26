@@ -21,11 +21,21 @@ var calculatorService = {
      CalculatorService : {
            CalculatorHttpPort : {
                  add : (request) => {
-                    console.log('Received Request..', request);
-                    return ( { 'addResponse' :
-                                {
+                    if (request.n1 === '2') {
+                      throw {
+                        Fault: {
+                          Code: {
+                            Value: 'soap:Sender',
+                            Subcode: { value: 'rpc:BadArguments' }
+                          },
+                          Reason: { Text: 'Processing Error' },
+                          statusCode: 500
+                        }
+                      };
+                    }
+                    return ( { 'addResponse' : {
                                 'return': (parseInt(request.n1) + parseInt(request.n2))
-                                }
+                              }
                              }
                             );
                  }
@@ -38,10 +48,27 @@ var wsdl = fs.readFileSync(`${wsdlPath}/calculator.wsdl`, 'utf-8');
 server.listen(port, () => {
   console.log(`Server started at port ${port}`);
 });
-soap.listen(server,
+
+var calcservice = soap.listen(server,
   {
     path: '/calculator',
     services: calculatorService,
     xml: wsdl
   }
 );
+
+calcservice.log = (type, data) => {
+  // console.log(`====================${type}========================`);
+  // console.log(data);
+};
+
+calcservice.authenticate = function(security) {
+    var created, nonce, password, user, token;
+    token = security.UsernameToken, user = token.Username,
+            password = token.Password, nonce = token.Nonce, created = token.Created;
+     return user === 'test' && password.$value === soap.passwordDigest(nonce, created, 'test');
+  };
+
+calcservice.authorizeConnection = function(req) {
+    return true; // or false
+};
