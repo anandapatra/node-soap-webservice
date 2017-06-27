@@ -63,10 +63,24 @@ calcservice.log = (type, data) => {
 };
 
 calcservice.authenticate = function(security) {
+   try {
     var created, nonce, password, user, token;
     token = security.UsernameToken, user = token.Username,
             password = token.Password, nonce = token.Nonce, created = token.Created;
      return user === 'test' && password.$value === soap.passwordDigest(nonce, created, 'test');
+   } catch (e) {
+     console.log(e);
+     throw {
+       Fault: {
+         Code: {
+           Value: 'soap:Sender',
+           Subcode: { value: 'rpc:BadArguments' }
+         },
+         Reason: { Text: 'Authentication Failure' },
+         statusCode: 500
+       }
+     };
+   }
   };
 
 calcservice.authorizeConnection = function(req) {
